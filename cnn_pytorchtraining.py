@@ -26,11 +26,12 @@ class cnnmodel(nn.Module):
         self.fc1=nn.Linear(128*4*4,256)
         self.fc2=nn.Linear(256,128)
         self.fc3=nn.Linear(128,10)
+        self.pool=nn.MaxPool2d(2,2)
     
     def forward(self,x):
         x=self.conv1(x)
         x=F.relu(x)
-        x=self.poool(x)
+        x=self.pool(x)
         x=self.pool(F.relu(self.conv2(x)))
         x=self.pool(F.relu(self.conv3(x)))
         x=x.view(-1,128*4*4)
@@ -41,19 +42,38 @@ class cnnmodel(nn.Module):
     
 model=cnnmodel()
 criterian=nn.CrossEntropyLoss()
-optimizer=optim.Adam(model.parameters)
+optimizer=optim.Adam(model.parameters(),lr=0.0001)
 
 #train the model
 num_epochs=10
 for epoch in range(num_epochs):
     running_loss=0.0
     for image,label in train_loader:
-        output= model(image)
+        output=model(image)
         loss=criterian(output,label)
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        running_loss+=loss.item
-    
+        running_loss+=loss.item()
+
     print(f'epoch[{epoch+1/num_epochs}],loss:{running_loss/len(train_loader)}')
+
+model.eval()
+correct=0.0
+total=0.0
+with torch.no_grad:
+    for img,label in test_loader:
+        output=model(img)
+        loss=criterian(output,label)
+        _,predicted=torch.max(output,1)
+        total+=label.size(0)
+        running_loss+=loss.item()
+    print(f'epoch[{epoch+1/num_epochs}],loss:{running_loss/len(train_loader)}')
+    print(f"accuracy:{(correct/total)*100}")
+
+plt.plot(loss)
+plt.show()    
+
+
+
 
